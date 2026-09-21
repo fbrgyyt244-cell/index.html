@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 필라테스 식단 & 운동 매니저 Pro</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #e8f5e9;
+            --workout: #8e24aa;
+            --workout-light: #f3e5f5;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #212529;
+            --text-sub: #6c757d;
+            --border: #edf2f7;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; font-family: "Pretendard", -apple-system, system-ui, Roboto, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text-main); padding: 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .app-container { max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+
+        /* Header Auth Bar */
+        .auth-bar { background: var(--card-bg); border-radius: var(--radius); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--border); }
+        .user-profile { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+        .auth-btn { border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .btn-login { background: #4285f4; color: white; }
+        .btn-logout { background: #f44336; color: white; display: none; }
+
+        /* Navigation Tabs */
+        .nav-tabs { display: flex; background: #e9ecef; border-radius: 12px; padding: 4px; gap: 4px; }
+        .tab-btn { flex: 1; border: none; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--text-sub); background: transparent; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active { background: white; color: var(--text-main); box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+
+        /* Cards & Titles */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid var(--border); }
+        .card-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: #343a40; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Progress Bars */
+        .macro-grid { display: flex; flex-direction: column; gap: 12px; }
+        .macro-item { display: flex; flex-direction: column; gap: 6px; }
+        .macro-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+        .bar-bg { width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+        
+        .fill-cal { background: linear-gradient(90deg, #42a5f5, #1e88e5); }
+        .fill-carb { background: linear-gradient(90deg, #ffa726, #fb8c00); }
+        .fill-pro { background: linear-gradient(90deg, #ef5350, #e53935); }
+        .fill-fat { background: linear-gradient(90deg, #66bb6a, #43a047); }
+
+        /* Feedback Box */
+        .ai-box { background: var(--primary-light); border-radius: 12px; padding: 14px; border-left: 4px solid var(--primary); font-size: 13px; line-height: 1.6; color: #1b5e20; }
+
+        /* Form Inputs */
+        .form-group { display: flex; flex-direction: column; gap: 12px; }
+        .image-picker { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; position: relative; min-height: 100px; display: flex; align-items: center; justify-content: center; background: #fafafa; }
+        .preview-img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; display: none; }
+        
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; outline: none; }
+        
+        .submit-btn { width: 100%; padding: 13px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .submit-btn-workout { background: var(--workout); }
+
+        /* Item Cards */
+        .item-card { display: flex; background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; padding: 12px; gap: 12px; margin-bottom: 8px; align-items: center; }
+        .item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .item-info { flex: 1; }
+        .item-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+        .item-sub { font-size: 12px; color: var(--text-sub); }
+        .btn-del { font-size: 11px; padding: 4px 8px; border: none; background: #ffebee; color: #c62828; border-radius: 4px; cursor: pointer; font-weight: 700; }
+
+        /* Weekly Dashboard Card */
+        .weekly-stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #f8f9fa; border: 1px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; }
+        .stat-val { font-size: 18px; font-weight: 800; color: var(--primary); margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- 로그인 바 -->
+    <div class="auth-bar">
+        <div class="user-profile" id="user-info">👋 로그인 대기 중...</div>
+        <div>
+            <button class="auth-btn btn-login" id="login-btn">Google 로그인</button>
+            <button class="auth-btn btn-logout" id="logout-btn">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 네비게이션 탭 -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('today')">☀️ 오늘 식단/운동</button>
+        <button class="tab-btn" onclick="switchTab('weekly')">📅 주간(7일) 분석</button>
+    </div>
+
+    <!-- TAB 1: 오늘의 식단 & 운동 -->
+    <div id="tab-today" class="tab-content" style="display: flex; flex-direction: column; gap: 16px;">
+        
+        <!-- 대시보드 -->
+        <div class="card">
+            <div class="card-title">
+                <span>오늘의 일일 목표</span>
+                <span id="burn-text" style="font-size: 12px; color: var(--workout); font-weight: bold;">🔥 운동 소모: 0 kcal</span>
+            </div>
+            
+            <div class="macro-grid">
+                <div class="macro-item">
+                    <div class="macro-header"><span>칼로리 (섭취 - 운동소모)</span><span id="cal-text">0 / 1,900 kcal</span></div>
+                    <div class="bar-bg"><div id="cal-bar" class="bar-fill fill-cal" style="width: 0%;"></div></div>
+                </div>
+                <div class="macro-item">
+                    <div class="macro-header"><span>탄수화물</span><span id="carb-text">0 / 95g</span></div>
+                    <div class="bar-bg"><div id="carb-bar" class="bar-fill fill-carb" style="width: 0%;"></div></div>
+                </div>
+                <div class="macro-item">
+                    <div class="macro-header"><span>단백질</span><span id="pro-text">0 / 190g</span></div>
+                    <div class="bar-bg"><div id="pro-bar" class="bar-fill fill-pro" style="width: 0%;"></div></div>
+                </div>
+                <div class="macro-item">
+                    <div class="macro-header"><span>지방</span><span id="fat-text">0 / 84g</span></div>
+                    <div class="bar-bg"><div id="fat-bar" class="bar-fill fill-fat" style="width: 0%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 피드백 -->
+        <div class="ai-box" id="ai-feedback">
+            💡 식단과 운동을 입력하시면 영양 및 칼로리 균형 피드백을 안내해 드립니다.
+        </div>
+
+        <!-- 식단 입력 -->
+        <div class="card">
+            <div class="card-title">🥗 식단 기록하기</div>
+            <div class="form-group">
+                <div class="image-picker" onclick="document.getElementById('file-input').click()">
+                    <div id="picker-placeholder" style="color: var(--text-sub); font-size: 13px;">📸 사진 찍기 / 등록하기</div>
+                    <img id="img-preview" class="preview-img" alt="미리보기">
+                </div>
+                <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;" onchange="handleFileSelect(event)">
+                <input type="text" id="food-input" placeholder="음식명 (예: 닭가슴살 200g, 현미밥 1공기)">
+                <button class="submit-btn" onclick="addMeal()">식단 추가하기</button>
+            </div>
+        </div>
+
+        <!-- 운동 입력 -->
+        <div class="card">
+            <div class="card-title" style="color: var(--workout);">🏋️‍♀️ 운동 기록하기</div>
+            <div class="form-group">
+                <select id="workout-type">
+                    <option value="필라테스">필라테스 (분당 5kcal)</option>
+                    <option value="러닝">러닝 / 달리기 (분당 10kcal)</option>
+                    <option value="웨이트">웨이트 트레이닝 (분당 7kcal)</option>
+                    <option value="유산소">싸이클/유산소 (분당 8kcal)</option>
+                    <option value="수영">수영 (분당 9kcal)</option>
+                    <option value="산책">산책 / 걷기 (분당 3kcal)</option>
+                </select>
+                <input type="number" id="workout-time" placeholder="운동 시간 (분 단위, 예: 50)">
+                <button class="submit-btn submit-btn-workout" onclick="addWorkout()">운동 기록 저장</button>
+            </div>
+        </div>
+
+        <!-- 기록 목록 -->
+        <div class="card">
+            <div class="card-title">오늘의 기록 리스트</div>
+            <div id="today-records"></div>
+        </div>
+
+    </div>
+
+    <!-- TAB 2: 주간 7일 분석 -->
+    <div id="tab-weekly" class="tab-content" style="display: none; flex-direction: column; gap: 16px;">
+        <div class="card">
+            <div class="card-title">📅 최근 7일 평균 분석 리포트</div>
+            
+            <div class="weekly-stat-grid">
+                <div class="stat-box">
+                    <div style="font-size: 12px; color: var(--text-sub);">일평균 순 섭취</div>
+                    <div class="stat-val" id="w-cal">0 kcal</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 12px; color: var(--text-sub);">단백질 달성률</div>
+                    <div class="stat-val" id="w-pro-rate" style="color: #e53935;">0%</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 12px; color: var(--text-sub);">일평균 탄수화물</div>
+                    <div class="stat-val" id="w-carb" style="color: #fb8c00;">0g</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 12px; color: var(--text-sub);">일평균 운동 소모</div>
+                    <div class="stat-val" id="w-burn" style="color: var(--workout);">0 kcal</div>
+                </div>
+            </div>
+
+            <div class="ai-box" id="weekly-ai-feedback">
+                📊 지난 7일간의 기록을 종합 분석 중입니다.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Firebase 스크립트 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyD-wenepviao6XP5GH3gdIv0rX63kX3CyA",
+        authDomain: "day-diet-manager.firebaseapp.com",
+        projectId: "day-diet-manager",
+        storageBucket: "day-diet-manager.firebasestorage.app",
+        messagingSenderId: "477372819209",
+        appId: "1:477372819209:web:ec47da88da2d4afd0b55d8",
+        measurementId: "G-CQWFHK7D15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userInfo = document.getElementById('user-info');
+
+    getRedirectResult(auth).catch(err => console.error(err));
+    loginBtn.addEventListener('click', () => signInWithRedirect(auth, provider));
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            userInfo.innerHTML = `<span>👋 ${user.displayName || '회원'}님</span>`;
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'block';
+        } else {
+            userInfo.innerHTML = `<span>로그인이 필요합니다</span>`;
+            loginBtn.style.display = 'block';
+            logoutBtn.style.display = 'none';
+        }
+    });
+</script>
+
+<!-- 데이터 저장 및 비즈니스 로직 -->
+<script>
+    const GOALS = { cal: 1900, carb: 95, pro: 190, fat: 84 };
+    let appData = JSON.parse(localStorage.getItem('pilates_diet_app_data') || '{"meals":[], "workouts":[]}');
+    let currentImageBase64 = null;
+
+    const getTodayStr = () => new Date().toISOString().split('T')[0];
+
+    window.onload = () => { render(); };
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+        if (tab === 'today') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-today').style.display = 'flex';
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-weekly').style.display = 'flex';
+            renderWeekly();
+        }
+    }
+
+    function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                currentImageBase64 = evt.target.result;
+                const preview = document.getElementById('img-preview');
+                preview.src = currentImageBase64;
+                preview.style.display = 'block';
+                document.getElementById('picker-placeholder').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function analyzeNutrition(text) {
+        let cal = 300, carb = 25, pro = 20, fat = 10;
+        const lower = text.toLowerCase();
+        if (lower.includes("닭가슴살")) { cal = 165; carb = 0; pro = 31; fat = 3.6; if(lower.includes("200")) { cal*=2; pro*=2; } }
+        else if (lower.includes("밥") || lower.includes("현미")) { cal = 300; carb = 65; pro = 6; fat = 1; }
+        else if (lower.includes("바나나")) { cal = 105; carb = 27; pro = 1.3; fat = 0.3; }
+        else if (lower.includes("계란") || lower.includes("달걀")) { cal = 140; carb = 1; pro = 12; fat = 10; }
+        else if (lower.includes("연어")) { cal = 200; carb = 0; pro = 22; fat = 12; }
+        return { cal: Math.round(cal), carb: Math.round(carb), pro: Math.round(pro), fat: Math.round(fat) };
+    }
+
+    function addMeal() {
+        const input = document.getElementById('food-input');
+        const name = input.value.trim() || "사진 기록 식단";
+        
+        appData.meals.unshift({
+            id: Date.now(),
+            date: getTodayStr(),
+            name: name,
+            img: currentImageBase64,
+            macros: analyzeNutrition(name),
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        saveData();
+        input.value = '';
+        currentImageBase64 = null;
+        document.getElementById('img-preview').style.display = 'none';
+        document.getElementById('picker-placeholder').style.display = 'block';
+        render();
+    }
+
+    function addWorkout() {
+        const type = document.getElementById('workout-type').value;
+        const timeInput = document.getElementById('workout-time');
+        const mins = parseInt(timeInput.value) || 0;
+
+        if (mins <= 0) { alert("운동 시간을 분 단위로 입력해 주세요."); return; }
+
+        const rateMap = { "필라테스": 5, "러닝": 10, "웨이트": 7, "유산소": 8, "수영": 9, "산책": 3 };
+        const burn = mins * (rateMap[type] || 5);
+
+        appData.workouts.unshift({
+            id: Date.now(),
+            date: getTodayStr(),
+            type: type,
+            mins: mins,
+            burn: burn,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        saveData();
+        timeInput.value = '';
+        render();
+    }
+
+    function deleteItem(category, id) {
+        if (confirm("이 항목을 삭제하시겠습니까?")) {
+            appData[category] = appData[category].filter(x => x.id !== id);
+            saveData();
+            render();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('pilates_diet_app_data', JSON.stringify(appData));
+    }
+
+    function render() {
+        const today = getTodayStr();
+        const todayMeals = appData.meals.filter(m => m.date === today);
+        const todayWorkouts = appData.workouts.filter(w => w.date === today);
+
+        let totals = { cal: 0, carb: 0, pro: 0, fat: 0, burn: 0 };
+        todayMeals.forEach(m => { totals.cal += m.macros.cal; totals.carb += m.macros.carb; totals.pro += m.macros.pro; totals.fat += m.macros.fat; });
+        todayWorkouts.forEach(w => { totals.burn += w.burn; });
+
+        const netCal = Math.max(0, totals.cal - totals.burn);
+
+        // UI 갱신
+        document.getElementById('burn-text').innerText = `🔥 운동 소모: ${totals.burn} kcal`;
+        document.getElementById('cal-text').innerText = `${netCal.toLocaleString()} / ${GOALS.cal.toLocaleString()} kcal`;
+        document.getElementById('cal-bar').style.width = `${Math.min((netCal / GOALS.cal) * 100, 100)}%`;
+
+        document.getElementById('carb-text').innerText = `${totals.carb} / ${GOALS.carb}g`;
+        document.getElementById('carb-bar').style.width = `${Math.min((totals.carb / GOALS.carb) * 100, 100)}%`;
+
+        document.getElementById('pro-text').innerText = `${totals.pro} / ${GOALS.pro}g`;
+        document.getElementById('pro-bar').style.width = `${Math.min((totals.pro / GOALS.pro) * 100, 100)}%`;
+
+        document.getElementById('fat-text').innerText = `${totals.fat} / ${GOALS.fat}g`;
+        document.getElementById('fat-bar').style.width = `${Math.min((totals.fat / GOALS.fat) * 100, 100)}%`;
+
+        // 피드백
+        const aiBox = document.getElementById('ai-feedback');
+        let msg = `오늘 순 섭취: <b>${netCal} kcal</b> (음식 ${totals.cal} - 운동 ${totals.burn})<br>`;
+        msg += (GOALS.pro - totals.pro > 0) ? `💪 단백질 <b>${GOALS.pro - totals.pro}g 더 섭취</b> 권장!` : `✅ 오늘 단백질 목표 달성!`;
+        aiBox.innerHTML = msg;
+
+        // 리스트 출력
+        const listEl = document.getElementById('today-records');
+        listEl.innerHTML = '';
+
+        todayMeals.forEach(m => {
+            const el = document.createElement('div');
+            el.className = 'item-card';
+            const imgBox = m.img ? `<img src="${m.img}" class="item-img">` : `<div class="item-img">🥗</div>`;
+            el.innerHTML = `
+                ${imgBox}
+                <div class="item-info">
+                    <div class="item-title">${m.name} <span style="font-size:11px; color:#888;">${m.time}</span></div>
+                    <div class="item-sub">${m.macros.cal} kcal (탄 ${m.macros.carb}g · 단 ${m.macros.pro}g · 지 ${m.macros.fat}g)</div>
+                </div>
+                <button class="btn-del" onclick="deleteItem('meals', ${m.id})">삭제</button>
+            `;
+            listEl.appendChild(el);
+        });
+
+        todayWorkouts.forEach(w => {
+            const el = document.createElement('div');
+            el.className = 'item-card';
+            el.innerHTML = `
+                <div class="item-img" style="background:#f3e5f5;">🏋️‍♀️</div>
+                <div class="item-info">
+                    <div class="item-title">${w.type} ${w.mins}분 <span style="font-size:11px; color:#888;">${w.time}</span></div>
+                    <div class="item-sub" style="color:var(--workout); font-weight:bold;">-${w.burn} kcal 소모</div>
+                </div>
+                <button class="btn-del" onclick="deleteItem('workouts', ${w.id})">삭제</button>
+            `;
+            listEl.appendChild(el);
+        });
+    }
+
+    function renderWeekly() {
+        // 지난 7일간 계산
+        let avgCal = 0, avgPro = 0, avgCarb = 0, avgBurn = 0;
+        const dates = Array.from({length: 7}, (_, i) => {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            return d.toISOString().split('T')[0];
+        });
+
+        dates.forEach(d => {
+            appData.meals.filter(m => m.date === d).forEach(m => {
+                avgCal += m.macros.cal; avgPro += m.macros.pro; avgCarb += m.macros.carb;
+            });
+            appData.workouts.filter(w => w.date === d).forEach(w => {
+                avgBurn += w.burn;
+            });
+        });
+
+        avgCal = Math.round(avgCal / 7);
+        avgPro = Math.round(avgPro / 7);
+        avgCarb = Math.round(avgCarb / 7);
+        avgBurn = Math.round(avgBurn / 7);
+
+        const proRate = Math.min(100, Math.round((avgPro / GOALS.pro) * 100));
+
+        document.getElementById('w-cal').innerText = `${avgCal} kcal`;
+        document.getElementById('w-pro-rate').innerText = `${proRate}%`;
+        document.getElementById('w-carb').innerText = `${avgCarb}g`;
+        document.getElementById('w-burn').innerText = `${avgBurn} kcal`;
+
+        let feedback = `📊 <b>지난 7일 평균 분석 리포트</b><br>`;
+        feedback += `• 일평균 운동 소모: <b>${avgBurn} kcal</b><br>`;
+        feedback += proRate >= 80 
+            ? `✅ 단백질을 아주 훌륭하게 섭취하고 계십니다! (목표 달성률 ${proRate}%)`
+            : `⚠️ 단백질 평균 달성률이 ${proRate}%로 다소 낮습니다. 닭가슴살/달걀 등 단백질 비중을 더 늘려주세요!`;
+
+        document.getElementById('weekly-ai-feedback').innerHTML = feedback;
+    }
+</script>
+
+</body>
+</html>
